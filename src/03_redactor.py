@@ -2,7 +2,6 @@ import os
 from google import genai
 from dotenv import load_dotenv
 
-# Carreguem la clau de l'arxiu .env
 directori_actual = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(os.path.dirname(directori_actual), '.env')
 load_dotenv(dotenv_path=env_path)
@@ -12,70 +11,48 @@ class RedactorGemini:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("⚠️ No s'ha trobat GEMINI_API_KEY a l'arxiu .env")
-            
         self.client = genai.Client(api_key=api_key)
 
     def redactar_noticia(self, general, critic, historic, bulo):
-        """Genera l'article periodístic rigorós i formal."""
-        print("🤖 Connectant amb Gemini per redactar la notícia escrita...")
-        
+        print("🤖 Redactant l'article principal...")
         text_historic = f"Fa un any ({historic['any_passat']}), les reserves estaven al {historic['mitjana_1_any']:.1f}%." if historic['mitjana_1_any'] else "No hi ha dades fiables de fa un any."
-
+        
         prompt = f"""
-        Ets el 'Cronista de Dades', un periodista d'intel·ligència artificial expert en periodisme de dades.
-        
-        DADES OFICIALS REALS DE LES CONQUES INTERNES (Data: {general['data_lectura']}):
-        - Estat General: {general['percentatge_mitja']:.1f}% de capacitat.
-        - Històric: {text_historic}
-        - Excepció Local Crítica: {critic['pantano']} està només al {critic['percentatge']:.2f}%.
-        
-        NOTÍCIA/BULO: "{bulo['afirmacio']}" (Font: {bulo['font']})
-        
-        TASCA:
-        Escriu una notícia (màxim 3 paràgrafs) analitzant el titular. Si és alarmisme global, desmenteix-ho amb el {general['percentatge_mitja']:.1f}%. Si parla d'un problema local (com Siurana al {critic['percentatge']:.2f}%), matisa-ho donant la raó en l'àmbit local però donant context global.
-        
-        Idioma: Català. To: Analític, rigorós.
+        Ets el 'Cronista de Dades'. DADES (Data: {general['data_lectura']}): General: {general['percentatge_mitja']:.1f}%. Històric: {text_historic}. Pantà crític: {critic['pantano']} ({critic['percentatge']:.2f}%).
+        NOTÍCIA A ANALITZAR: "{bulo['afirmacio']}" (Font: {bulo['font']})
+        TASCA: Escriu una notícia (màxim 3 paràgrafs) analitzant el titular. Dona context global però matisa amb les excepcions locals si cal.
+        Idioma: Català. To: Analític i rigorós.
         """
-        try:
-            response = self.client.models.generate_content(
-                model='gemini-2.5-flash', contents=prompt,
-                config=genai.types.GenerateContentConfig(temperature=0.3)
-            )
-            return response.text
-        except Exception as e:
-            return f"❌ Error de connexió amb Gemini (Notícia): {e}"
+        
+        response = self.client.models.generate_content(model='gemini-2.5-flash', contents=prompt, config=genai.types.GenerateContentConfig(temperature=0.3))
+        return response.text
 
-    def generar_guio_podcast(self, general, critic, historic, bulo):
-        """Genera un guió de ràdio a dues veus preparat per a Text-To-Speech."""
-        print("🎙️ Connectant amb Gemini per crear el guió del podcast...")
+    def redactar_comparativa(self, general, historic):
+        print("📊 Redactant la secció de comparativa històrica...")
+        text_historic = f"Fa un any ({historic['any_passat']}), les reserves estaven al {historic['mitjana_1_any']:.1f}%." if historic['mitjana_1_any'] else ""
         
-        prompt_podcast = f"""
-        Ets el guionista estrella d'un podcast diari anomenat 'La Dada Clara'.
-        Escriu un guió de ràdio breu i molt dinàmic (màxim 1 minut) entre dos presentadors:
-        - MARC: Fa les preguntes, porta el ritme i presenta la notícia d'avui.
-        - ANNA: L'experta en dades que desmunta els mites amb xifres reals.
-        
-        TEMÀTICA D'AVUI:
-        Han de debatre sobre aquest titular que corre per internet: "{bulo['afirmacio']}" (Font: {bulo['font']}).
-        
-        DADES QUE L'ANNA HA DE DONAR DURANT EL DIÀLEG (Data: {general['data_lectura']}):
-        - Les Conques Internes estan avui al {general['percentatge_mitja']:.1f}%.
-        - Fa un any estàvem al {historic['mitjana_1_any']:.1f}%.
-        - El matís: A l'embassament de {critic['pantano']} la situació segueix sent crítica ({critic['percentatge']:.2f}%), per tant, no tot és perfecte arreu.
-        
-        ESTRUCTURA:
-        MARC: [Text]
-        ANNA: [Text]
-        ...
-        
-        Idioma: Català. To: Col·loquial, fresc, de ràdio moderna i molt natural.
+        prompt = f"""
+        Ets un analista de dades. Escriu una secció curta (1 o 2 paràgrafs) comparant exclusivament l'estat actual de les Conques Internes ({general['percentatge_mitja']:.1f}%) amb la situació de fa un any ({text_historic}).
+        Aporta context sobre el ritme de recuperació.
+        Idioma: Català. To: Tècnic, precís i directe. No posis títol al text, comença directament a redactar.
         """
-        try:
-            # Utilitzem una temperatura més alta (0.5) perquè el diàleg sigui més creatiu i natural
-            response = self.client.models.generate_content(
-                model='gemini-2.5-flash', contents=prompt_podcast,
-                config=genai.types.GenerateContentConfig(temperature=0.5)
-            )
-            return response.text
-        except Exception as e:
-            return f"❌ Error de connexió amb Gemini (Podcast): {e}"
+        
+        response = self.client.models.generate_content(model='gemini-2.5-flash', contents=prompt, config=genai.types.GenerateContentConfig(temperature=0.2))
+        return response.text
+
+    def redactar_per_a_tts(self, general, critic, bulo):
+        print("🎙️ Adaptant el text per a Edge-TTS (Sense símbols, només veu)...")
+        
+        prompt = f"""
+        Escriu una crònica de ràdio d'un sol locutor (1 minut màxim) analitzant aquest titular: "{bulo['afirmacio']}".
+        Utilitza la dada de la mitjana actual ({general['percentatge_mitja']:.1f}%) i el pantà crític de {critic['pantano']} ({critic['percentatge']:.2f}%).
+        MOLT IMPORTANT PER A LA SÍNTESI DE VEU:
+        - Escriu frases curtes i amb puntuació molt clara (comes i punts) perquè la IA de veu respiri de forma natural.
+        - PROHIBIT utilitzar qualsevol símbol com asteriscs (*), guions o emojis. 
+        - Els números escriu-los de manera natural per ser llegits.
+        - No incloguis títols ni acotacions, només el text net per ser llegit.
+        Idioma: Català. To: Periodístic i informatiu.
+        """
+        
+        response = self.client.models.generate_content(model='gemini-2.5-flash', contents=prompt, config=genai.types.GenerateContentConfig(temperature=0.3))
+        return response.text.replace('*', '') # Neteja extra de seguretat

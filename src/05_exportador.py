@@ -6,48 +6,38 @@ class ExportadorWord:
     def __init__(self):
         self.doc = docx.Document()
         
-    def generar_document(self, text_noticia, text_podcast, ruta_imatge, nom_arxiu="Reportatge_Multimèdia_Sequera.docx"):
-        print("📝 Maquetant el document Word amb Notícia i Guió de Podcast...")
+    def generar_document(self, text_noticia, text_comparativa, text_tts, ruta_imatge, nom_arxiu="Reportatge_Estructurat.docx"):
+        print("📝 Maquetant el document Word estructurat (Inputs de Dades)...")
         
-        # --- PÀGINA 1: EL REPORTATGE ESCRIT ---
-        self.doc.add_heading("Agència de Notícies IA - El Cronista de Dades", 0)
-        
+        # --- SECCIÓ 1: ARTICLE PRINCIPAL ---
+        self.doc.add_heading("Agència de Notícies IA - Article Principal", 0)
         if os.path.exists(ruta_imatge):
             self.doc.add_picture(ruta_imatge, width=Inches(6.0))
-            paragraf_imatge = self.doc.paragraphs[-1]
-            paragraf_imatge.alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
-        
-        self.doc.add_paragraph() 
+            self.doc.paragraphs[-1].alignment = docx.enum.text.WD_ALIGN_PARAGRAPH.CENTER
         
         for paragraf in text_noticia.split('\n'):
             if paragraf.strip(): 
-                if paragraf.startswith('**') and paragraf.endswith('**'):
-                    self.doc.add_heading(paragraf.replace('**', ''), level=1)
-                else:
-                    self.doc.add_paragraph(paragraf.strip())
+                self.doc.add_paragraph(paragraf.replace('**', '').strip())
                     
-        # --- PÀGINA 2: EL GUIÓ DE RÀDIO / PODCAST ---
-        self.doc.add_page_break() # Salt de pàgina
-        self.doc.add_heading("🎙️ Guió de Ràdio: La Dada Clara", level=1)
-        self.doc.add_paragraph("Guió autogenerat preparat per a locució humana o Text-To-Speech.\n")
-        
-        for linia in text_podcast.split('\n'):
-            if linia.strip():
-                p = self.doc.add_paragraph()
-                # Si la línia comença pel nom del locutor, el posem en negreta
-                if linia.startswith("MARC:") or linia.startswith("ANNA:"):
-                    parts = linia.split(":", 1)
-                    p.add_run(parts[0] + ":").bold = True
-                    if len(parts) > 1:
-                        p.add_run(parts[1])
-                else:
-                    p.add_run(linia.strip())
+        # --- SECCIÓ 2: COMPARATIVA DE DATES ---
+        self.doc.add_paragraph() # Espai
+        self.doc.add_heading("📊 Anàlisi Històric de Dates", level=1)
+        for paragraf in text_comparativa.split('\n'):
+            if paragraf.strip():
+                self.doc.add_paragraph(paragraf.replace('**', '').strip())
 
-        # Peu de pàgina final
-        peu = self.doc.add_paragraph("\nDocument i guió generats automàticament a partir de Dades Obertes de la Generalitat de Catalunya.")
+        # --- SECCIÓ 3: INPUT PER A EDGE-TTS ---
+        self.doc.add_page_break()
+        self.doc.add_heading("🎙️ Input d'Àudio (Optimitzat per a Edge-TTS)", level=1)
+        self.doc.add_paragraph("Aquest bloc de text ha estat optimitzat per a síntesi de veu neuronal: sense símbols i amb estructura de respiració natural.\n").italic = True
+        
+        for linia in text_tts.split('\n'):
+            if linia.strip():
+                self.doc.add_paragraph(linia.replace('**', '').strip())
+
+        peu = self.doc.add_paragraph("\nDocument estructurat autogenerat a partir de Dades Obertes.")
         peu.style = 'Intense Quote'
         
-        # Guardar l'arxiu
         ruta_arrel = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         ruta_final = os.path.join(ruta_arrel, nom_arxiu)
         self.doc.save(ruta_final)
