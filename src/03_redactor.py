@@ -16,7 +16,8 @@ class RedactorGemini:
         self.client = genai.Client(api_key=api_key)
 
     def redactar_noticia(self, general, critic, historic, bulo):
-        print("🤖 Connectant amb Gemini per redactar la notícia de Fact-Checking Intel·ligent...")
+        """Genera l'article periodístic rigorós i formal."""
+        print("🤖 Connectant amb Gemini per redactar la notícia escrita...")
         
         text_historic = f"Fa un any ({historic['any_passat']}), les reserves estaven al {historic['mitjana_1_any']:.1f}%." if historic['mitjana_1_any'] else "No hi ha dades fiables de fa un any."
 
@@ -24,30 +25,57 @@ class RedactorGemini:
         Ets el 'Cronista de Dades', un periodista d'intel·ligència artificial expert en periodisme de dades.
         
         DADES OFICIALS REALS DE LES CONQUES INTERNES (Data: {general['data_lectura']}):
-        - Estat General (Global Catalunya): {general['percentatge_mitja']:.1f}% de capacitat.
-        - Històric Global: {text_historic}
-        - Excepció Local Crítica: L'embassament de {critic['pantano']} es troba només al {critic['percentatge']:.2f}%.
+        - Estat General: {general['percentatge_mitja']:.1f}% de capacitat.
+        - Històric: {text_historic}
+        - Excepció Local Crítica: {critic['pantano']} està només al {critic['percentatge']:.2f}%.
         
-        NOTÍCIA O AFIRMACIÓ A ANALITZAR:
-        - Font: {bulo['font']}
-        - Titular/Afirmació: "{bulo['afirmacio']}"
+        NOTÍCIA/BULO: "{bulo['afirmacio']}" (Font: {bulo['font']})
         
-        LA TEVA TASCA (Màxim 3-4 paràgrafs):
-        1. Analitza intel·ligentment l'escala de la notícia. Parla d'una sequera generalitzada a tota Catalunya o d'un conflicte local/comarcal (com el Priorat, Siurana, etc.)?
-        2. Si la notícia fa una afirmació alarmista GLOBAL sobre tot el territori, utilitza el {general['percentatge_mitja']:.1f}% i l'històric per DESMENTIR-HO amb contundència.
-        3. Si la notícia parla d'un conflicte LOCAL (ex: "Guerra de l'aigua al Priorat", problemes a un pantà concret), MATISA-HO I DONA CONTEXT. Explica que, tot i que Catalunya gaudeix d'una mitjana excel·lent ({general['percentatge_mitja']:.1f}%), la notícia té sentit perquè hi ha excepcions territorials greus com l'embassament de {critic['pantano']} al {critic['percentatge']:.2f}%.
-        4. Conclou amb una reflexió sobre la importància de no confondre la mitjana global d'un país amb les realitats i crisis locals.
+        TASCA:
+        Escriu una notícia (màxim 3 paràgrafs) analitzant el titular. Si és alarmisme global, desmenteix-ho amb el {general['percentatge_mitja']:.1f}%. Si parla d'un problema local (com Siurana al {critic['percentatge']:.2f}%), matisa-ho donant la raó en l'àmbit local però donant context global.
         
-        Idioma: Català. To: Analític, rigorós, objectiu i constructiu. Mai ataquessis un mitjà si està informant d'una realitat local verificable amb les nostres dades.
+        Idioma: Català. To: Analític, rigorós.
         """
-        
         try:
-            # Pugem una mica la temperatura (0.3) perquè el model pugui "raonar" millor els matisos
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config=genai.types.GenerateContentConfig(temperature=0.3) 
+                model='gemini-2.5-flash', contents=prompt,
+                config=genai.types.GenerateContentConfig(temperature=0.3)
             )
             return response.text
         except Exception as e:
-            return f"❌ Error de connexió amb Gemini: {e}"
+            return f"❌ Error de connexió amb Gemini (Notícia): {e}"
+
+    def generar_guio_podcast(self, general, critic, historic, bulo):
+        """Genera un guió de ràdio a dues veus preparat per a Text-To-Speech."""
+        print("🎙️ Connectant amb Gemini per crear el guió del podcast...")
+        
+        prompt_podcast = f"""
+        Ets el guionista estrella d'un podcast diari anomenat 'La Dada Clara'.
+        Escriu un guió de ràdio breu i molt dinàmic (màxim 1 minut) entre dos presentadors:
+        - MARC: Fa les preguntes, porta el ritme i presenta la notícia d'avui.
+        - ANNA: L'experta en dades que desmunta els mites amb xifres reals.
+        
+        TEMÀTICA D'AVUI:
+        Han de debatre sobre aquest titular que corre per internet: "{bulo['afirmacio']}" (Font: {bulo['font']}).
+        
+        DADES QUE L'ANNA HA DE DONAR DURANT EL DIÀLEG (Data: {general['data_lectura']}):
+        - Les Conques Internes estan avui al {general['percentatge_mitja']:.1f}%.
+        - Fa un any estàvem al {historic['mitjana_1_any']:.1f}%.
+        - El matís: A l'embassament de {critic['pantano']} la situació segueix sent crítica ({critic['percentatge']:.2f}%), per tant, no tot és perfecte arreu.
+        
+        ESTRUCTURA:
+        MARC: [Text]
+        ANNA: [Text]
+        ...
+        
+        Idioma: Català. To: Col·loquial, fresc, de ràdio moderna i molt natural.
+        """
+        try:
+            # Utilitzem una temperatura més alta (0.5) perquè el diàleg sigui més creatiu i natural
+            response = self.client.models.generate_content(
+                model='gemini-2.5-flash', contents=prompt_podcast,
+                config=genai.types.GenerateContentConfig(temperature=0.5)
+            )
+            return response.text
+        except Exception as e:
+            return f"❌ Error de connexió amb Gemini (Podcast): {e}"
