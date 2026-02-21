@@ -1,0 +1,6 @@
+requests==2.31.0
+pandas==2.2.0
+python-dotenv==1.0.1
+openai==1.12.0 # O la librería de la IA que prefieras usar
+matplotlib==3.8.2
+seaborn==0.13.2
