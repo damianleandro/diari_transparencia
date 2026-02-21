@@ -1,15 +1,11 @@
 import os
-import sys
 from google import genai
 from dotenv import load_dotenv
 
-# Truco de arquitectura: Afegim la carpeta actual al path de Python 
-# perquè pugui trobar els altres fitxers sense importar des d'on executem.
-directori_actual = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(directori_actual)
-
 # Carreguem la clau de l'arxiu .env
-load_dotenv()
+directori_actual = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(os.path.dirname(directori_actual), '.env')
+load_dotenv(dotenv_path=env_path)
 
 class RedactorGemini:
     def __init__(self):
@@ -17,43 +13,41 @@ class RedactorGemini:
         if not api_key:
             raise ValueError("⚠️ No s'ha trobat GEMINI_API_KEY a l'arxiu .env")
             
-        # Iniciem el NOU client de Gemini
         self.client = genai.Client(api_key=api_key)
 
-    # Actualitza la definició per rebre el paràmetre 'historic'
-    # Afegim el paràmetre 'bulo'
     def redactar_noticia(self, general, critic, historic, bulo):
-        print("🤖 Connectant amb Gemini per redactar la notícia ANTI-BULOS...")
+        print("🤖 Connectant amb Gemini per redactar la notícia de Fact-Checking Intel·ligent...")
         
         text_historic = f"Fa un any ({historic['any_passat']}), les reserves estaven al {historic['mitjana_1_any']:.1f}%." if historic['mitjana_1_any'] else "No hi ha dades fiables de fa un any."
 
         prompt = f"""
-        Ets el 'Cronista de Dades', un periodista d'intel·ligència artificial expert en fact-checking.
+        Ets el 'Cronista de Dades', un periodista d'intel·ligència artificial expert en periodisme de dades.
         
-        DADES OFICIALS REALS (Data: {general['data_lectura']}):
-        - Conques Internes: {general['percentatge_mitja']:.1f}% de capacitat (Pràcticament plenes).
-        - Històric: {text_historic}
-        - Excepció: {critic['pantano']} està al {critic['percentatge']:.2f}%.
+        DADES OFICIALS REALS DE LES CONQUES INTERNES (Data: {general['data_lectura']}):
+        - Estat General (Global Catalunya): {general['percentatge_mitja']:.1f}% de capacitat.
+        - Històric Global: {text_historic}
+        - Excepció Local Crítica: L'embassament de {critic['pantano']} es troba només al {critic['percentatge']:.2f}%.
         
-        OBJECTIU DE DESINFORMACIÓ A DESMENTIR:
-        - Font que difon el bulo: {bulo['font']}
-        - Afirmació falsa literal: "{bulo['afirmacio']}"
+        NOTÍCIA O AFIRMACIÓ A ANALITZAR:
+        - Font: {bulo['font']}
+        - Titular/Afirmació: "{bulo['afirmacio']}"
         
-        LA TEVA TASCA:
-        Escriu una notícia (màxim 3-4 paràgrafs) on:
-        1. Comencis citant directament la font del bulo i la seva afirmació falsa.
-        2. Utilitzis immediatament la dada del {general['percentatge_mitja']:.1f}% i l'evolució històrica per DESMENTIR rotundament aquesta mentida (és matemàticament impossible tenir gairebé un 90% d'aigua si destrueixes preses).
-        3. Mantinguis el rigor periodístic esmentant que l'únic punt realment crític és {critic['pantano']}.
+        LA TEVA TASCA (Màxim 3-4 paràgrafs):
+        1. Analitza intel·ligentment l'escala de la notícia. Parla d'una sequera generalitzada a tota Catalunya o d'un conflicte local/comarcal (com el Priorat, Siurana, etc.)?
+        2. Si la notícia fa una afirmació alarmista GLOBAL sobre tot el territori, utilitza el {general['percentatge_mitja']:.1f}% i l'històric per DESMENTIR-HO amb contundència.
+        3. Si la notícia parla d'un conflicte LOCAL (ex: "Guerra de l'aigua al Priorat", problemes a un pantà concret), MATISA-HO I DONA CONTEXT. Explica que, tot i que Catalunya gaudeix d'una mitjana excel·lent ({general['percentatge_mitja']:.1f}%), la notícia té sentit perquè hi ha excepcions territorials greus com l'embassament de {critic['pantano']} al {critic['percentatge']:.2f}%.
+        4. Conclou amb una reflexió sobre la importància de no confondre la mitjana global d'un país amb les realitats i crisis locals.
         
-        Idioma: Català. To: Contundent contra la mentida, però basat estrictament en les dades obertes.
+        Idioma: Català. To: Analític, rigorós, objectiu i constructiu. Mai ataquessis un mitjà si està informant d'una realitat local verificable amb les nostres dades.
         """
         
         try:
+            # Pugem una mica la temperatura (0.3) perquè el model pugui "raonar" millor els matisos
             response = self.client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=prompt,
-                config=genai.types.GenerateContentConfig(temperature=0.2)
+                config=genai.types.GenerateContentConfig(temperature=0.3) 
             )
             return response.text
         except Exception as e:
-            return f"❌ Error de connexió: {e}"
+            return f"❌ Error de connexió amb Gemini: {e}"
